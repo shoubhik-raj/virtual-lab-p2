@@ -20,7 +20,6 @@ const Login: React.FC = () => {
   }, [isAuthenticated, dispatch]);
 
   if (isAuthenticated && !loading) {
-    console.log("AUTHENTICATED ", isAuthenticated);
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -34,7 +33,11 @@ const Login: React.FC = () => {
         <div className="text-center">
           <div className="flex justify-center">
             {/* <Atom className="h-16 w-16 text-indigo-600" /> */}
-            <img src="/assets/img/vlabs-color-small-moe.jpg" alt="logo" className="h-24" />
+            <img
+              src="/assets/img/vlabs-color-small-moe.png"
+              alt="logo"
+              className="h-24"
+            />
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Virtual Labs Creator Portal
