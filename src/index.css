@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  font-family: "Urbanist", sans-serif;
+}
+
+:root {
+  --font-urbanist: "Urbanist";
+}
