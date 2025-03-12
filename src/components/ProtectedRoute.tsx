@@ -43,7 +43,7 @@ const ProtectedRoute: React.FC = () => {
 
   // If user is authenticated but not onboarded, redirect to onboarding
   if (isAuthenticated && user && !user.isOnboarded) {
-    console.log("NOT ONB")
+    console.log("NOT ONB");
     return <Navigate to="/onboarding" replace />;
   }
 

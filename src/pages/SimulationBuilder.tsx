@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { generateSimulationCode, saveSimulation } from "../store/slices/simulationsSlice";
+import {
+  generateSimulationCode,
+  saveSimulation,
+} from "../store/slices/simulationsSlice";
 import { RootState } from "../store";
 import { ArrowRight, Send, Maximize, RefreshCw } from "lucide-react";
 import Editor from "@monaco-editor/react";
@@ -12,6 +15,8 @@ const SimulationBuilder: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // Get data from navigation state with empty string fallbacks
   const initialPrompt = location.state?.response || "";
   const name = location.state?.name || "";
   const subject = location.state?.subject || "";
@@ -20,7 +25,15 @@ const SimulationBuilder: React.FC = () => {
   const experimentId = location.state?.experimentId || "";
   const course = location.state?.course || "";
 
-  console.log ("AYYYYYYYYYYYY", name, subject, department, details, experimentId, course)
+  console.log("Received navigation state:", {
+    name,
+    subject,
+    department,
+    details,
+    experimentId,
+    course,
+    prompt: initialPrompt,
+  });
 
   const [code, setCode] = useState<string>("");
   const [messages, setMessages] = useState<{ role: string; content: string }[]>(
@@ -50,20 +63,16 @@ const SimulationBuilder: React.FC = () => {
   }, [initialPrompt]);
 
   useEffect(() => {
-    console.log("simulationName", simulationName)
-    console.log("name L:", name)
-    if (simulationName === "") {
+    if (name && simulationName === "") {
       setSimulationName(name);
     }
-    console.log("simulationName", simulationName)
-    console.log("name L:", name)
-  }, [name]);
+  }, [name, simulationName]);
 
   const handleInitialCodeGeneration = async (prompt: string) => {
     setLoading(true);
     try {
       const generatedCode = await dispatch(
-        generateSimulationCode(prompt)
+        generateSimulationCode(prompt) as any
       ).unwrap();
       setCode(generatedCode);
       setMessages((prev) => [
@@ -176,13 +185,17 @@ const SimulationBuilder: React.FC = () => {
       }
     }
   };
-  
+
   const toggleFullScreen = () => {
-    const iframe = document.getElementById("preview-iframe") as HTMLIFrameElement;
+    const iframe = document.getElementById(
+      "preview-iframe"
+    ) as HTMLIFrameElement;
     if (iframe) {
       if (!document.fullscreenElement) {
         iframe.requestFullscreen().catch((err) => {
-          console.error(`Error attempting to enable fullscreen: ${err.message}`);
+          console.error(
+            `Error attempting to enable fullscreen: ${err.message}`
+          );
           alert(`Error attempting to enable fullscreen: ${err.message}`);
         });
       } else {
@@ -199,20 +212,29 @@ const SimulationBuilder: React.FC = () => {
 
     setIsSaving(true);
     setSaveError(null);
-    
+
     try {
       // Extract first message as prompt if available
-      const prompt = messages.length > 0 && messages[0].role === "user" 
-        ? messages[0].content 
-        : "No initial prompt available";
-        
+      const prompt =
+        messages.length > 0 && messages[0].role === "user"
+          ? messages[0].content
+          : "No initial prompt available";
+
       // Ensure all required fields are included
       if (!experimentId || !course || !details) {
-        console.error("Missing required fields:", { experimentId, course, details });
-        setSaveError(`Missing required fields: ${!experimentId ? 'Experiment ID, ' : ''}${!course ? 'Course, ' : ''}${!details ? 'Details' : ''}`);
+        console.error("Missing required fields:", {
+          experimentId,
+          course,
+          details,
+        });
+        setSaveError(
+          `Missing required fields: ${!experimentId ? "Experiment ID, " : ""}${
+            !course ? "Course, " : ""
+          }${!details ? "Details" : ""}`
+        );
         return;
       }
-      
+
       // Log values for debugging
       console.log("DEBUG - Values before publishing:", {
         experimentId,
@@ -220,9 +242,9 @@ const SimulationBuilder: React.FC = () => {
         details,
         name: simulationName,
         subject,
-        department
+        department,
       });
-        
+
       // Create simulation data object with all required fields
       const simulationData = {
         name: simulationName || "Untitled Simulation",
@@ -234,20 +256,24 @@ const SimulationBuilder: React.FC = () => {
         experimentId: experimentId, // This must be a valid MongoDB ObjectId
         course: course, // Required field
       };
-      
+
       console.log("Publishing simulation with data:", simulationData);
-      
-      // Use the saveSimulation thunk to send the data to the backend
-      const result = await dispatch(saveSimulation(simulationData)).unwrap();
-      
+
+      // Use the saveSimulation thunk to send the data to the backend with type assertion
+      const result = await dispatch(
+        saveSimulation(simulationData) as any
+      ).unwrap();
+
       // Show success notification
       alert("Simulation published successfully!");
-      
+
       // Navigate to simulations list
-      navigate('/');
+      navigate("/");
     } catch (error) {
       console.error("Failed to publish simulation:", error);
-      setSaveError("Failed to publish simulation. Please check console for details.");
+      setSaveError(
+        "Failed to publish simulation. Please check console for details."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -266,9 +292,11 @@ const SimulationBuilder: React.FC = () => {
             className="text-xl font-bold w-full bg-transparent border-none focus:outline-none"
             placeholder="Simulation Name"
           /> */}
-          <h2 className="text-lg font-semibold w-full bg-transparent border-none focus:outline-none">{simulationName}</h2>
+          <h2 className="text-lg font-semibold w-full bg-transparent border-none focus:outline-none">
+            {simulationName}
+          </h2>
         </div>
-        
+
         {/* Chat section */}
         <div
           ref={chatContainerRef}
@@ -330,18 +358,22 @@ const SimulationBuilder: React.FC = () => {
             </button>
           </div>
         </div>
-        
+
         {/* Publish Simulation button */}
         <div className="p-4 mt-auto">
-          <button 
+          <button
             onClick={handlePublishSimulation}
             disabled={isSaving || code.trim() === ""}
-            className={`w-full ${isSaving ? 'bg-gray-400' : 'bg-green-500 hover:bg-green-600'} text-white py-3 px-4 rounded-md flex items-center justify-between transition-colors`}
+            className={`w-full ${
+              isSaving ? "bg-gray-400" : "bg-green-500 hover:bg-green-600"
+            } text-white py-3 px-4 rounded-md flex items-center justify-between transition-colors`}
           >
-            <span>{isSaving ? 'Publishing...' : 'Publish Simulation'}</span>
+            <span>{isSaving ? "Publishing..." : "Publish Simulation"}</span>
             <ArrowRight size={18} />
           </button>
-          {saveError && <p className="text-red-500 text-xs mt-2">{saveError}</p>}
+          {saveError && (
+            <p className="text-red-500 text-xs mt-2">{saveError}</p>
+          )}
         </div>
       </div>
 
@@ -359,7 +391,7 @@ const SimulationBuilder: React.FC = () => {
               minimap: { enabled: false },
               scrollBeyondLastLine: false,
               fontSize: 14,
-              wordWrap: "on",  // Enable word wrapping to prevent horizontal scrolling
+              wordWrap: "on", // Enable word wrapping to prevent horizontal scrolling
             }}
           />
         </div>

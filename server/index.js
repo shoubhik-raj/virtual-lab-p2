@@ -13,6 +13,7 @@ import cloudinary from "cloudinary";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import axios from "axios";
 
 // Get the current file's directory (equivalent to __dirname in CommonJS)
 const __filename = fileURLToPath(import.meta.url);
@@ -142,11 +143,12 @@ passport.use(
 // Initialize Passport
 app.use(passport.initialize());
 
-// JWT middleware
+// JWT middleware with improved error handling
 const authenticateJWT = (req, res, next) => {
   const token = req.cookies.token;
 
   if (!token) {
+    console.log("No token found in cookies");
     return res.status(401).json({ message: "Authentication required" });
   }
 
@@ -155,6 +157,7 @@ const authenticateJWT = (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
+    console.error("JWT verification error:", error.message);
     return res.status(403).json({ message: "Invalid or expired token" });
   }
 };
@@ -196,10 +199,13 @@ app.get(
       { expiresIn: "7d" }
     );
 
+    // Update cookie settings for better cross-domain compatibility in production
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production", // Secure cookie in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Allow cross-site cookie in production
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: "/", // Ensure cookie is available across the entire site
     });
 
     const user = await User.findById(req.user._id);
@@ -212,6 +218,9 @@ app.get(
       return res.redirect(`${process.env.CLIENT_URL}/onboarding`);
     }
 
+    // Log authentication success for debugging
+    console.log("Authentication successful for user:", user.name);
+
     // Redirect to dashboard if user exists and is onboarded
     res.redirect(`${process.env.CLIENT_URL}/dashboard`);
   }
@@ -219,13 +228,23 @@ app.get(
 
 app.get("/api/auth/status", authenticateJWT, async (req, res) => {
   try {
+    console.log("Auth status check for user ID:", req.user.id);
+
     const user = await User.findById(req.user.id).select("-githubAccessToken");
     if (!user) {
+      console.log("User not found in database:", req.user.id);
       return res.status(404).json({ message: "User not found" });
     }
-    res.json({ user });
+
+    console.log("Auth status successful for user:", user.name);
+    res.json({
+      user,
+      isAuthenticated: true,
+      tokenPresent: !!req.cookies.token,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Auth status error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
@@ -390,29 +409,37 @@ app.get("/api/simulations", authenticateJWT, async (req, res) => {
   }
 });
 
-app.get("/api/simulations/by-experiment/:experimentId", authenticateJWT, async (req, res) => {
-  try {
-    const { experimentId } = req.params;
-    
-    console.log("Fetching simulations for experiment ID:", experimentId);
-    
-    if (!experimentId) {
-      return res.status(400).json({ message: "Experiment ID is required" });
+app.get(
+  "/api/simulations/by-experiment/:experimentId",
+  authenticateJWT,
+  async (req, res) => {
+    try {
+      const { experimentId } = req.params;
+
+      console.log("Fetching simulations for experiment ID:", experimentId);
+
+      if (!experimentId) {
+        return res.status(400).json({ message: "Experiment ID is required" });
+      }
+
+      const simulations = await Simulation.find({
+        userId: req.user.id,
+        experimentId: experimentId,
+      }).sort({ createdAt: -1 });
+
+      console.log(
+        `Found ${simulations.length} simulations for experiment ${experimentId}`
+      );
+
+      res.json(simulations);
+    } catch (error) {
+      console.error("Error fetching simulations by experiment:", error);
+      res
+        .status(500)
+        .json({ message: "Failed to fetch simulations for this experiment" });
     }
-    
-    const simulations = await Simulation.find({
-      userId: req.user.id,
-      experimentId: experimentId
-    }).sort({ createdAt: -1 });
-    
-    console.log(`Found ${simulations.length} simulations for experiment ${experimentId}`);
-    
-    res.json(simulations);
-  } catch (error) {
-    console.error("Error fetching simulations by experiment:", error);
-    res.status(500).json({ message: "Failed to fetch simulations for this experiment" });
   }
-});
+);
 
 app.post(
   "/api/simulations/generate-prompt",
@@ -926,3 +953,5 @@ app.listen(PORT, () => {
 });
 
 export default app;
+
+axios.defaults.withCredentials = true;

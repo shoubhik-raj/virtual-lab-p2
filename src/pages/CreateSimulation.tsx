@@ -22,13 +22,13 @@ const CreateSimulation: React.FC = () => {
     file: null,
     experimentId: "",
   });
-  
+
   // Add loading state
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     dispatch(fetchUserExperiments());
-    console.log("EXPOJREJ : ", experiments)
+    console.log("EXPOJREJ : ", experiments);
   }, [dispatch]);
 
   const handleChange = (
@@ -48,32 +48,34 @@ const CreateSimulation: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Set loading state to true
     setIsLoading(true);
-    
+
     try {
       const { file, ...data } = formData;
-  
+
       const response = await dispatch(generateAIPrompt(data)).unwrap();
       console.log("Full response:", response);
-      
+
+      // Ensure we use the original form data as fallback when response data is empty
       const navigationData = {
-        response: response.prompt,
-        name: response.name || formData.name,
-        subject: response.subject || formData.subject,
-        department: response.department || formData.department,
-        details: response.description || formData.description, 
-        experimentId: formData.experimentId,
-        course: formData.course, 
-        description: response.description || formData.description 
+        response: response.prompt, // The AI-generated prompt
+        name: formData.name, // Always use the original name from the form
+        subject: formData.subject, // Always use the original subject from the form
+        department: formData.department, // Always use the original department from the form
+        details: formData.description, // Use the original description as details
+        experimentId: formData.experimentId, // The ID of the selected experiment
+        course: formData.course, // The selected course
       };
-      
-      console.log('Navigating with data:', navigationData);
-      navigate("/create-simulation/simulation-builder", { state: navigationData });
+
+      console.log("Navigating with data:", navigationData);
+      navigate("/create-simulation/simulation-builder", {
+        state: navigationData,
+      });
     } catch (error) {
-      console.error('Error generating simulation:', error);
-      alert('Failed to generate simulation. Please try again.');
+      console.error("Error generating simulation:", error);
+      alert("Failed to generate simulation. Please try again.");
     } finally {
       // Reset loading state even if there was an error
       setIsLoading(false);
@@ -122,7 +124,6 @@ const CreateSimulation: React.FC = () => {
                 <option key={experiment._id} value={experiment._id}>
                   {experiment.name}
                 </option>
-
               ))}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
@@ -323,9 +324,11 @@ const CreateSimulation: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className={`bg-blue-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-600'} text-white font-medium py-4 px-10 rounded-md flex items-center justify-between min-w-[250px]`}
+            className={`bg-blue-500 ${
+              isLoading ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-600"
+            } text-white font-medium py-4 px-10 rounded-md flex items-center justify-between min-w-[250px]`}
           >
-            <span>{isLoading ? 'Generating...' : 'Generate Simulation'}</span>
+            <span>{isLoading ? "Generating..." : "Generate Simulation"}</span>
             {isLoading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
