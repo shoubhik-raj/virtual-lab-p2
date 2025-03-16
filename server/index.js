@@ -595,7 +595,7 @@ app.post(
           messages: [
             {
               role: "system",
-              content: `You are an expert in creating educational simulations using HTML, CSS, and JavaScript. Your task is to generate complete, working code for interactive simulations that can be used in virtual labs. send code in html, css and javascript in one file embedded in html. include all the necessary code to make the simulation work. only send code if possible.  
+              content: `You are an expert in creating educational simulations using HTML, CSS, and JavaScript. Your task is to generate complete, working code for interactive simulations that can be used in virtual labs. send code in html, css and javascript in one file embedded in html. include all the necessary code to make the simulation work. only send the code.
                 Technical Requirements:
                 - The simulation should be a single HTML file with embedded JavaScript and CSS.
                 - Use modern JavaScript (ES6+) and CSS3
@@ -625,12 +625,12 @@ app.post(
           messages: [
             {
               role: "system",
-              content: `You are an expert in creating educational simulations using HTML, CSS, and JavaScript. Your task is to generate complete, working code for interactive simulations that can be used in virtual labs. send code in html, css and javascript in one file embedded in html. include all the necessary code to make the simulation work. write whatever instruction or info you want to give back and then write the whole code in one go.
+              content: `You are an expert in creating educational simulations using HTML, CSS, and JavaScript. Your task is to generate complete, working code for interactive simulations that can be used in virtual labs. send code in html, css and javascript in one file embedded in html. include all the necessary code to make the simulation work. only send the code.
                 Technical Requirements:
                 - The simulation should be a single HTML file with embedded JavaScript and CSS.
                 - Use modern JavaScript (ES6+) and CSS3
                 - Ensure the simulation is responsive and works on different screen sizes
-                - Include clear instructions for users
+                - Include clear instructions for users in the code
                 - Add appropriate visualizations, controls, and feedback mechanisms
                 - Implement proper physics/mathematical models where applicable
                 - Include appropriate error handling`,
@@ -732,7 +732,7 @@ app.post("/api/simulations/chat", authenticateJWT, async (req, res) => {
       {
         role: "system",
         content:
-          "You are an AI assistant helping to build an educational simulation using HTML, CSS, and JavaScript. You can modify code based on user requests. When the user asks for changes, provide the updated code in full.",
+          "You are an expert simulation builder AI assistant helping to build an educational simulation using HTML, CSS, and JavaScript. you work on code for interactive simulations that can be used in virtual labs. include all the necessary code to make the simulation work. only send the code.  You can modify code based on user requests. When the user asks for changes, provide the updated code in full.",
       },
       ...formattedHistory,
       { role: "user", content: message },
@@ -743,7 +743,6 @@ app.post("/api/simulations/chat", authenticateJWT, async (req, res) => {
 
     try {
       if (preferredLLM === "openai") {
-        // Use OpenAI
         console.log("Using OpenAI for chat");
         const completion = await openai.chat.completions.create({
           model: "gpt-3.5-turbo",
@@ -754,7 +753,6 @@ app.post("/api/simulations/chat", authenticateJWT, async (req, res) => {
 
         aiResponse = completion.choices[0].message.content;
       } else {
-        // Use Deepseek
         console.log("Attempting to use Deepseek for chat");
         try {
           const completion = await deepseek.chat.completions.create({
@@ -769,7 +767,6 @@ app.post("/api/simulations/chat", authenticateJWT, async (req, res) => {
           console.error("Deepseek API error:", deepseekError);
           console.log("Falling back to OpenAI");
 
-          // Fallback to OpenAI
           const completion = await openai.chat.completions.create({
             model: "gpt-3.5-turbo",
             messages: messages,
